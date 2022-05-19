@@ -1,0 +1,84 @@
+########################################################
+#         READ EXCEL FILE WITH Emails				   #
+########################################################
+$file = "C:\Scripts\Excels\Excel_File_Name.xlsx"
+
+$excel = New-Object -ComObject Excel.Application
+
+$wb = $excel.Workbooks.Open($file)
+
+$sheet = $wb.Worksheets.Item("Sheet1")
+
+$rowMax = ($sheet.UsedRange.Rows).Count
+
+$myData = New-Object -TypeName psobject
+
+$myData | Add-Member -MemberType NoteProperty -Name Name -Value $null
+$myData | Add-Member -MemberType NoteProperty -Name Username -Value $null
+$myData | Add-Member -MemberType NoteProperty -Name Email -Value $null
+
+$myArray = @()
+
+
+for($i = 2; $i -le $rowMax; $i++){
+    
+    $objTemp = $myData | Select-Object *
+   
+    $objTemp.Name = $sheet.Cells.Item($i,1).Text
+    $objTemp.Username = $sheet.Cells.Item($i,2).Text
+    $objTemp.Email = $sheet.Cells.Item($i,3).Text
+    $myArray += $objTemp
+}
+
+#Export Array to CSV file.
+$myArray | Export-Csv -Encoding UTF8 C:\Scripts\CSV\CSV_FILE_NAME.csv
+
+write $myArray
+
+$excel.Quit()
+
+Stop-Process -Name EXCEL -Force
+########################################################
+
+########################################################
+#                ADD Emails at AD Users                #
+########################################################
+
+# Import active directory module for running AD cmdlets
+Import-Module activedirectory
+
+Get-Credential
+
+#Store the data from ADUsers.csv in the $ADUsers variable
+$ADUsers = Import-csv C:\Scripts\CSV\Exported_CSV_File.csv
+
+#Loop through each row containing user details in the CSV file 
+foreach ($User in $ADUsers)
+{
+    
+	#Read user data from each field in each row and assign the data to a variable as below
+	
+	$Name 	= $User.Name
+	$Username 	= $User.UserPrincipalName
+	$email		= $User.Email
+
+  #Check to see if the user already exists in AD
+  $existEmail = Get-ADUser -Identity $User.Username -Properties EmailAddress
+    
+  write-host $existEmail -ForegroundColor Yellow
+  write-host $User.Username -ForegroundColor Yellow
+
+	if ($existEmail.EmailAddress -like "*@*")
+	{
+      #If user does exist, give a warning
+      Write-Warning "User have alreadry an email address."
+	}
+	else
+	{
+      #User does not exist then proceed to create the new user account
+      write-hos "Adding email done for user:  '$Name'" -Foregroundcolor Green
+
+      #Account will be created in the OU provided by the $OU variable read from the CSV file
+      Set-ADUser $User.Username -EmailAddress $email 
+   }
+}
