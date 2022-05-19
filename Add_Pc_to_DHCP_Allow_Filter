@@ -1,0 +1,15 @@
+$serverName = "name_of_DHCP_server"
+
+Import-Csv -Path "C:\Scripts\DHCPFilter.csv" | Add-DhcpServerv4Filter -ComputerName $serverName -List Allow
+
+$fileN = Import-Csv CSV_Patch\CSV_File_Name.csv
+
+foreach ($pc in $fileN)
+{
+    
+    $pcName = $pc | Select-Object Description
+    $mac = $pc | Select-Object MacAddress
+
+    write-host "Computer with name: '$pcName' and physical address: '$mac' added correctly to dhcp server with name '$serverName'" -Foregroundcolor Green
+
+}
