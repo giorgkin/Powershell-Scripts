@@ -1,0 +1,36 @@
+########################################################
+#                ADD Notes at AD Users                #
+########################################################
+
+# Import active directory module for running AD cmdlets
+Import-Module activedirectory
+
+#Store the data from ADUsers.csv in the $ADUsers variable
+$ADUsers = Import-csv C:\Scripts\CSV\CSV_USARENAME_AND_NOTES.csv
+
+#Loop through each row containing user details in the CSV file 
+foreach ($User in $ADUsers)
+{    
+	#Read user data from each field in each row and assign the data to a variable as below
+	$Username 	= $User.SamAccountName
+	$user_notes		= $User.Notes
+
+    #Check to see if the user exists in AD
+    $existingADUser = Get-ADUser -Filter "SamAccountName -eq '$Username'"
+    if($null -eq $existingADUser)
+    {
+        write-host "User with username: '$Username' does not exist." -ForegroundColor Red
+    }
+    else{
+        $ADInfo = Get-ADUser $Username -Properties Info
+       
+        if($ADInfo.Info -like "*"){
+            write-host "User with username: '$Username' has already Notes." -ForegroundColor Yellow
+        }
+        else{
+            Set-ADUser $Username -Replace  @{info= $user_notes }
+            Write-Host  "Adding this notes: '$user_notes' to user: '$Username'" -ForegroundColor Green
+        }
+    }
+    
+}
